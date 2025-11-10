@@ -1,0 +1,6 @@
+@NewsNet.Api_HostAddress = http://localhost:5223
+
+GET {{NewsNet.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
