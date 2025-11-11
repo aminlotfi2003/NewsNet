@@ -3,14 +3,12 @@ using NewsNet.Domain.Enums;
 
 namespace NewsNet.Domain.Entities;
 
-public class Comment
+public class Comment : EntityBase<Guid>
 {
-    public Guid Id { get; private set; }
     public Guid ArticleId { get; private set; }
     public Guid UserId { get; private set; }
     public string Body { get; private set; }
     public CommentStatus Status { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
 
     private Comment(Guid id, Guid articleId, Guid userId, string body, CommentStatus status, DateTimeOffset createdAt)
     {

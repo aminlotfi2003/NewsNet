@@ -1,34 +1,68 @@
-﻿using System.Text.RegularExpressions;
+﻿using NewsNet.Domain.Abstractions;
 using NewsNet.Domain.Common;
+using System.Text.RegularExpressions;
 
 namespace NewsNet.Domain.ValueObjects;
 
-public sealed class Slug : IEquatable<Slug>
+public sealed class Slug : ValueObject
 {
-    private static readonly Regex KebabRegex =
-        new(@"^[a-z0-9]+(-[a-z0-9]+)*$", RegexOptions.Compiled);
+    private static readonly Regex InvalidChars = new("[^a-z0-9\\- ]", RegexOptions.Compiled);
+    private static readonly Regex MultiSpaces = new("\\s+", RegexOptions.Compiled);
+    private static readonly Regex MultiDashes = new("\\-+", RegexOptions.Compiled);
 
     public string Value { get; }
 
     private Slug(string value) => Value = value;
 
-    public static Slug Create(string value)
+    public static async Task<Slug> CreateAsync(
+        string? raw,
+        IUniqueSlugChecker uniqueChecker,
+        CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            throw new DomainException("slug.empty", "Slug cannot be empty.");
+        if (string.IsNullOrWhiteSpace(raw))
+            throw DomainException.Required(nameof(Slug));
 
-        if (value.Length > 160)
-            throw new DomainException("slug.length", "Slug length must be ≤ 160.");
+        var normalized = Normalize(raw);
 
-        if (!KebabRegex.IsMatch(value))
-            throw new DomainException("slug.format", "Slug must be kebab-case (^[a-z0-9]+(-[a-z0-9]+)*$).");
+        if (string.IsNullOrWhiteSpace(normalized))
+            throw DomainException.Invalid(nameof(Slug), "Empty after normalization.");
 
-        return new Slug(value);
+        var isUnique = await uniqueChecker.IsUniqueAsync(normalized, ct);
+        if (!isUnique)
+            throw DomainException.NotUnique(nameof(Slug), normalized);
+
+        return new Slug(normalized);
     }
+
+    public static Slug FromExisting(string value) => new(value);
 
     public override string ToString() => Value;
 
-    public bool Equals(Slug? other) => other is not null && Value == other.Value;
-    public override bool Equals(object? obj) => obj is Slug s && Equals(s);
-    public override int GetHashCode() => Value.GetHashCode(StringComparison.Ordinal);
+    protected override IEnumerable<object?> GetEqualityComponents()
+    {
+        yield return Value;
+    }
+
+    // Helpers
+    public static string Normalize(string input)
+    {
+        var s = input.Trim().ToLowerInvariant();
+
+        s = s.Replace('‌', ' ')  // ZWNJ → space
+             .Replace('–', '-')  // en-dash
+             .Replace('—', '-')  // em-dash
+             .Replace('ـ', ' '); // kashida
+
+        s = InvalidChars.Replace(s, string.Empty);
+
+        s = MultiSpaces.Replace(s, " ");
+
+        s = s.Replace(' ', '-');
+
+        s = MultiDashes.Replace(s, "-");
+
+        s = s.Trim('-');
+
+        return s;
+    }
 }

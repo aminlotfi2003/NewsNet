@@ -4,19 +4,15 @@ using NewsNet.Domain.ValueObjects;
 
 namespace NewsNet.Domain.Entities;
 
-public class Article
+public class Article : EntityBase<Guid>
 {
-    public Guid Id { get; private set; }
     public Slug Slug { get; private set; }
     public string Title { get; private set; }
     public string? Summary { get; private set; }
     public string Content { get; private set; }
-    public IReadOnlyList<string> Tags => _tags.AsReadOnly();
-    private readonly List<string> _tags = new();
     public ArticleStatus Status { get; private set; }
     public Guid AuthorId { get; private set; }
     public DateTimeOffset? PublishedAt { get; private set; }
-    public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
     public long Views { get; private set; }
 
@@ -26,7 +22,6 @@ public class Article
         string title,
         string? summary,
         string content,
-        IEnumerable<string> tags,
         ArticleStatus status,
         Guid authorId,
         DateTimeOffset? publishedAt,
@@ -39,7 +34,6 @@ public class Article
         Title = title;
         Summary = summary;
         Content = content;
-        _tags = tags.ToList();
         Status = status;
         AuthorId = authorId;
         PublishedAt = publishedAt;
@@ -53,13 +47,11 @@ public class Article
         string title,
         string? summary,
         string content,
-        IEnumerable<string> tags,
         Guid authorId,
         DateTimeOffset createdAt)
     {
         ValidateTitle(title);
         ValidateContent(content);
-        var tagList = ValidateAndNormalizeTags(tags);
 
         return new Article(
             Guid.NewGuid(),
@@ -67,7 +59,6 @@ public class Article
             title.Trim(),
             string.IsNullOrWhiteSpace(summary) ? null : summary.Trim(),
             content,
-            tagList,
             ArticleStatus.Draft,
             authorId,
             null,
@@ -81,18 +72,14 @@ public class Article
         string title,
         string? summary,
         string content,
-        IEnumerable<string> tags,
         DateTimeOffset updatedAt)
     {
         ValidateTitle(title);
         ValidateContent(content);
-        var tagList = ValidateAndNormalizeTags(tags);
 
         Title = title.Trim();
         Summary = string.IsNullOrWhiteSpace(summary) ? null : summary.Trim();
         Content = content;
-        _tags.Clear();
-        _tags.AddRange(tagList);
         UpdatedAt = updatedAt;
     }
 
@@ -140,25 +127,5 @@ public class Article
 
         if (content.Trim().Length < 50)
             throw new DomainException("article.content.length", "Content length must be ≥ 50.");
-    }
-
-    private static List<string> ValidateAndNormalizeTags(IEnumerable<string> tags)
-    {
-        var list = (tags ?? Enumerable.Empty<string>())
-            .Select(t => t?.Trim())
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t!)
-            .ToList();
-
-        if (list.Count > 10)
-            throw new DomainException("article.tags.count", "Tags count cannot exceed 10.");
-
-        foreach (var tag in list)
-        {
-            if (tag.Length > 24)
-                throw new DomainException("article.tags.length", "Each tag length must be ≤ 24.");
-        }
-
-        return list;
     }
 }
