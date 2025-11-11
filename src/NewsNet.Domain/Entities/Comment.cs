@@ -7,7 +7,7 @@ public class Comment : EntityBase<Guid>
 {
     public Guid ArticleId { get; private set; }
     public Guid UserId { get; private set; }
-    public string Body { get; private set; }
+    public string Body { get; private set; } = default!;
     public CommentStatus Status { get; private set; }
 
     private Comment(Guid id, Guid articleId, Guid userId, string body, CommentStatus status, DateTimeOffset createdAt)
@@ -18,6 +18,10 @@ public class Comment : EntityBase<Guid>
         Body = body;
         Status = status;
         CreatedAt = createdAt;
+    }
+
+    private Comment()
+    {
     }
 
     public static Comment Create(Guid articleId, Guid userId, string body, DateTimeOffset createdAt)

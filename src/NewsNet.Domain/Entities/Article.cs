@@ -6,10 +6,10 @@ namespace NewsNet.Domain.Entities;
 
 public class Article : EntityBase<Guid>
 {
-    public Slug Slug { get; private set; }
-    public string Title { get; private set; }
+    public Slug Slug { get; private set; } = default!;
+    public string Title { get; private set; } = default!;
     public string? Summary { get; private set; }
-    public string Content { get; private set; }
+    public string Content { get; private set; } = default!;
     public ArticleStatus Status { get; private set; }
     public Guid AuthorId { get; private set; }
     public DateTimeOffset? PublishedAt { get; private set; }
@@ -40,6 +40,10 @@ public class Article : EntityBase<Guid>
         CreatedAt = createdAt;
         UpdatedAt = updatedAt;
         Views = views;
+    }
+
+    private Article()
+    {
     }
 
     public static Article Create(
