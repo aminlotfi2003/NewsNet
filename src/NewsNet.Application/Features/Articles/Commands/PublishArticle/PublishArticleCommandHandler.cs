@@ -28,17 +28,15 @@ public sealed class PublishArticleCommandHandler : IRequestHandler<PublishArticl
         _mapper = mapper;
     }
 
-    public async Task<ArticleDto> Handle(PublishArticleCommand request, CancellationToken cancellationToken)
+    public Task<ArticleDto> Handle(PublishArticleCommand request, CancellationToken cancellationToken)
     {
-        var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken);
-
-        if (article is null)
-            throw new NotFoundException(nameof(Article), request.Id);
-
-        article.Publish(_clock.UtcNow);
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return _mapper.Map<ArticleDto>(article);
+        return _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            var article = await _articleRepository.GetByIdAsync(request.Id, ct);
+            if (article is null)
+                throw new NotFoundException(nameof(Article), request.Id);
+            article.Publish(_clock.UtcNow);
+            return _mapper.Map<ArticleDto>(article);
+        }, cancellationToken);
     }
 }

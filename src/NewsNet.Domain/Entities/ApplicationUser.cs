@@ -10,4 +10,5 @@ public class ApplicationUser : IdentityUser<Guid>
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? ModifiedAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }

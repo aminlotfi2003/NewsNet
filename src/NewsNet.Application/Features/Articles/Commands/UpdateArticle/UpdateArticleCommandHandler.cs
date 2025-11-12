@@ -32,23 +32,22 @@ public sealed class UpdateArticleCommandHandler : IRequestHandler<UpdateArticleC
         _mapper = mapper;
     }
 
-    public async Task<ArticleDto> Handle(UpdateArticleCommand request, CancellationToken cancellationToken)
+    public Task<ArticleDto> Handle(UpdateArticleCommand request, CancellationToken cancellationToken)
     {
-        var article = await _articleRepository.GetByIdAsync(request.Id, cancellationToken);
-
-        if (article is null)
-            throw new NotFoundException(nameof(Article), request.Id);
-
-        if (!string.IsNullOrWhiteSpace(request.Slug) && !request.Slug.Equals(article.Slug.Value, StringComparison.OrdinalIgnoreCase))
+        return _unitOfWork.ExecuteInTransactionAsync(async ct =>
         {
-            var slug = await Slug.CreateAsync(request.Slug, _uniqueSlugChecker, cancellationToken);
-            article.ChangeSlug(slug, _clock.UtcNow);
-        }
+            var article = await _articleRepository.GetByIdAsync(request.Id, ct);
 
-        article.Update(request.Title, request.Summary, request.Content, _clock.UtcNow);
+            if (article is null)
+                throw new NotFoundException(nameof(Article), request.Id);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return _mapper.Map<ArticleDto>(article);
+            if (!string.IsNullOrWhiteSpace(request.Slug) && !request.Slug.Equals(article.Slug.Value, StringComparison.OrdinalIgnoreCase))
+            {
+                var slug = await Slug.CreateAsync(request.Slug, _uniqueSlugChecker, ct);
+                article.ChangeSlug(slug, _clock.UtcNow);
+            }
+            article.Update(request.Title, request.Summary, request.Content, _clock.UtcNow);
+            return _mapper.Map<ArticleDto>(article);
+        }, cancellationToken);
     }
 }

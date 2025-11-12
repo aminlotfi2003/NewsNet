@@ -31,24 +31,23 @@ public sealed class CreateArticleCommandHandler : IRequestHandler<CreateArticleC
         _mapper = mapper;
     }
 
-    public async Task<ArticleDto> Handle(CreateArticleCommand request, CancellationToken cancellationToken)
+    public Task<ArticleDto> Handle(CreateArticleCommand request, CancellationToken cancellationToken)
     {
-        var slugValue = string.IsNullOrWhiteSpace(request.Slug) ? request.Title : request.Slug!;
+        return _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            var slugValue = string.IsNullOrWhiteSpace(request.Slug) ? request.Title : request.Slug!;
+            var slug = await Slug.CreateAsync(slugValue, _uniqueSlugChecker, ct);
+            var article = Article.Create(
+                slug,
+                request.Title,
+                request.Summary,
+                request.Content,
+                request.AuthorId,
+                _clock.UtcNow
+            );
+            await _articleRepository.AddAsync(article, ct);
 
-        var slug = await Slug.CreateAsync(slugValue, _uniqueSlugChecker, cancellationToken);
-
-        var article = Article.Create(
-            slug,
-            request.Title,
-            request.Summary,
-            request.Content,
-            request.AuthorId,
-            _clock.UtcNow
-        );
-
-        await _articleRepository.AddAsync(article, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return _mapper.Map<ArticleDto>(article);
+            return _mapper.Map<ArticleDto>(article);
+        }, cancellationToken);
     }
 }

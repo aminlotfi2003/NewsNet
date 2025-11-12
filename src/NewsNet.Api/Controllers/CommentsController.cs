@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewsNet.Application.Common.Models;
 using NewsNet.Application.Contracts.Comments;
@@ -25,6 +26,7 @@ public sealed class CommentsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/approve")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CommentDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CommentDto>> Approve(Guid id, CancellationToken cancellationToken)
     {
@@ -33,6 +35,7 @@ public sealed class CommentsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/reject")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(CommentDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CommentDto>> Reject(Guid id, CancellationToken cancellationToken)
     {

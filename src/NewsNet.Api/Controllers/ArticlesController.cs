@@ -1,4 +1,5 @@
 ﻿using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewsNet.Application.Common.Models;
 using NewsNet.Application.Contracts.Articles;
@@ -36,6 +37,7 @@ public sealed class ArticlesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ArticleDto), StatusCodes.Status201Created)]
     public async Task<ActionResult<ArticleDto>> Create([FromBody] CreateArticleCommand command, CancellationToken cancellationToken)
     {
@@ -46,6 +48,7 @@ public sealed class ArticlesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ArticleDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ArticleDto>> Update(Guid id, [FromBody] UpdateArticleCommand command, CancellationToken cancellationToken)
     {
@@ -57,6 +60,7 @@ public sealed class ArticlesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/publish")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(typeof(ArticleDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ArticleDto>> Publish(Guid id, CancellationToken cancellationToken)
     {

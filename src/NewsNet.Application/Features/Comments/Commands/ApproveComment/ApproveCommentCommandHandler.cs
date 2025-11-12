@@ -24,17 +24,15 @@ public sealed class ApproveCommentCommandHandler : IRequestHandler<ApproveCommen
         _mapper = mapper;
     }
 
-    public async Task<CommentDto> Handle(ApproveCommentCommand request, CancellationToken cancellationToken)
+    public Task<CommentDto> Handle(ApproveCommentCommand request, CancellationToken cancellationToken)
     {
-        var comment = await _commentRepository.GetByIdAsync(request.Id, cancellationToken);
-
-        if (comment is null)
-            throw new NotFoundException(nameof(Comment), request.Id);
-
-        comment.Approve();
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return _mapper.Map<CommentDto>(comment);
+        return _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            var comment = await _commentRepository.GetByIdAsync(request.Id, ct);
+            if (comment is null)
+                throw new NotFoundException(nameof(Comment), request.Id);
+            comment.Approve();
+            return _mapper.Map<CommentDto>(comment);
+        }, cancellationToken);
     }
 }

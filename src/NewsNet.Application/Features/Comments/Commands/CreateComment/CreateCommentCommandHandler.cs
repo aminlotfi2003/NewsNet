@@ -31,23 +31,21 @@ public sealed class CreateCommentCommandHandler : IRequestHandler<CreateCommentC
         _mapper = mapper;
     }
 
-    public async Task<CommentDto> Handle(CreateCommentCommand request, CancellationToken cancellationToken)
+    public Task<CommentDto> Handle(CreateCommentCommand request, CancellationToken cancellationToken)
     {
-        var article = await _articleRepository.GetByIdAsync(request.ArticleId, cancellationToken);
-
-        if (article is null)
-            throw new NotFoundException(nameof(Article), request.ArticleId);
-
-        var comment = Comment.Create(
-            request.ArticleId,
-            request.UserId,
-            request.Body,
-            _clock.UtcNow
-        );
-
-        await _commentRepository.AddAsync(comment, cancellationToken);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        return _mapper.Map<CommentDto>(comment);
+        return _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            var article = await _articleRepository.GetByIdAsync(request.ArticleId, ct);
+            if (article is null)
+                throw new NotFoundException(nameof(Article), request.ArticleId);
+            var comment = Comment.Create(
+                request.ArticleId,
+                request.UserId,
+                request.Body,
+                _clock.UtcNow
+            );
+            await _commentRepository.AddAsync(comment, ct);
+            return _mapper.Map<CommentDto>(comment);
+        }, cancellationToken);
     }
 }
